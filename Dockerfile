@@ -1,40 +1,39 @@
 # syntax=docker/dockerfile:1
-# ============================================
-# BUILD STAGE
-# ============================================
-FROM node:20-alpine AS builder
+FROM node:20-bullseye
+
+# Install Python, Ruby, and other tools
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    ruby-full \
+    git \
+    curl \
+    wget \
+    nano \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user for security
+RUN groupadd -r botgroup && useradd -r -g botgroup botuser
 
 WORKDIR /app
 
-# Install dependencies first (better layer caching)
+# Install Node dependencies
 COPY package*.json ./
 RUN npm install --omit=dev --no-audit --no-fund
 
 # Copy source code
 COPY . .
 
-# ============================================
-# RUNTIME STAGE
-# ============================================
-FROM node:20-alpine AS runtime
+# Create necessary directories and set permissions
+RUN mkdir -p /app/uploads /app/bots && \
+    chown -R botuser:botgroup /app
 
-# Create non-root user for security
-RUN addgroup -S botgroup && adduser -S botuser -G botgroup
-
-WORKDIR /app
-
-# Copy built artifacts from builder
-COPY --from=builder --chown=botuser:botgroup /app/node_modules ./node_modules
-COPY --from=builder --chown=botuser:botgroup /app/src ./src
-COPY --from=builder --chown=botuser:botgroup /app/package.json ./
-
-# Switch to non-root user
 USER botuser
 
-# Railway injects PORT env var
+# Railway injects PORT
 EXPOSE 3000
 
-# Health check endpoint for Railway liveness monitoring
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-3000}/health || exit 1
 
