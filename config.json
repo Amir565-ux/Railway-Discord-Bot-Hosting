@@ -1,0 +1,6 @@
+{
+  "runtime": "node",
+  "version": "20",
+  "startupCommand": "node src/bot.js",
+  "autoRestart": true
+}
