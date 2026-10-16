@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1
-FROM node:20-bullseye
+# Changed from node:20-bullseye to node:20-bookworm (Debian 12)
+FROM node:20-bookworm
 
 # Install Python, Ruby, and other tools
 RUN apt-get update && apt-get install -y \
